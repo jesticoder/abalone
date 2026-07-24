@@ -2,7 +2,7 @@
 # Each value is a list: [stone_marker, neighbor1/void, neighbor2/void, ...]
 # stone_marker starts empty ("") and can be set later to mark a stone.
 
-emap = {
+global dirmap = {
     'a1': ['', 'void', 'a2', 'void', 'void', 'b1', 'b2'],
     'a2': ['', 'a1', 'a3', 'void', 'void', 'b2', 'b3'],
     'a3': ['', 'a2', 'a4', 'void', 'void', 'b3', 'b4'],
@@ -75,17 +75,17 @@ def fill_starting_position(emap):
     return emap
 
 def check_possible_moves(cmap, player):
-    dirmap = {}
+    movemap = {}
     for key in cmap:
         values = cmap[key]
         if values[0] == player:
-            dirmap[key] = []
+            movemap[key] = []
             for direction in range(1, len(values)):
                if not values[direction] == 'void':
                     nextpos = values[direction]
                     if cmap[nextpos][0] == '':
                         #Wenn zugrichtung leer ist wird zug als möglich angehangen
-                        dirmap[key].append(values[direction])
+                        movemap[key].append(values[direction])
                     elif cmap[nextpos][0] == player:
                         #Wenn eigner im weg dann kein zug möglich
                         pass
@@ -104,14 +104,26 @@ def check_possible_moves(cmap, player):
                                 pass
                         if strength == {1, 2}:
                         #Stärke von aktivem player herausfinden
-                            pass
-    return dirmap
+                            oppositedirection = (direction + 3)
+                            if oppositedirection > 6:
+                                oppositedirection -= 6
+                            behindpos = values[oppositedirection]
+                            if cmap[behindpos][0] == player:
+                                if strength == 1:
+                                    movemap[key].append(values[direction])
+                                else:
+                                    if cmap[cmap[behindpos][oppositedirection]][0] == player: #wenn der dritte vorher aus schwarz ist dann muss zwangsläufig auch gültig sein
+                                        movemap[key].append(values[direction])
 
 
+    return movemap
+
+def finddirectionindex(key, value):
+    return dirmap[key].index(value) 
        
 
 
 
 #MAIN
-emap = fill_starting_position(emap)
-print(check_possible_moves(emap, 0))
+workmap = fill_starting_position(dirmap)
+print(check_possible_moves(workmap, 0))
