@@ -1,8 +1,7 @@
 # Hexagonal board map: 9 rows (a-i), 61 tiles total.
 # Each value is a list: [stone_marker, neighbor1/void, neighbor2/void, ...]
 # stone_marker starts empty ("") and can be set later to mark a stone.
-
-global dirmap = {
+dirmap = {
     'a1': ['', 'void', 'a2', 'void', 'void', 'b1', 'b2'],
     'a2': ['', 'a1', 'a3', 'void', 'void', 'b2', 'b3'],
     'a3': ['', 'a2', 'a4', 'void', 'void', 'b3', 'b4'],
