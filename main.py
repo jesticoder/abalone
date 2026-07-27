@@ -103,7 +103,7 @@ def print_board(emap):
         row_str = " ".join(cells)
         print(f"{letter} " + " " * indent + row_str)
     print()
-    print("legend:  · empty    ○ player 0    ● player 1")
+    print("legend:  · empty    ○ player 1    ● player 0")
     print()       
 
 
@@ -168,24 +168,19 @@ def find_slide_moves(cmap, player, singlemap):
                 partnerdirection = operatingdirection + direction
                 if partnerdirection > 6:
                     partnerdirection -= 6
-                print(f"partnerdirection {partnerdirection}")
-                print(f"key {key}")
-                print(f"cmap[key][partnerdirection] {cmap[key][partnerdirection]}")
-                print(f"operatingdirection {operatingdirection}")
-                print(f"cmap[key]partnerdirection][0] {cmap[key][partnerdirection][0]}")
                 #now we can check if position in partnerdirection has a team stone
                 partner1 = cmap[key][partnerdirection]
                 if partner1 != 'void' and cmap[partner1][0] == player and cmap[cmap[partner1][operatingdirection]][0] == '': 
                     #jetzt ist 2er slide möglich
                     if not key in slidemap:
                         slidemap[key] = []
-                    slidemap[key].append([cmap[key][operatingdirection], partner1])
+                    slidemap[key].append([cmap[key][operatingdirection], partnerdirection, 2])
                     partner2 = cmap[partner1][partnerdirection]
                     if partner2 != 'void' and cmap[partner2][0] == player and cmap[cmap[partner2][operatingdirection]][0] == '': 
                         #jetzt ist 3er slide möglich
                         if not key in slidemap:
                             slidemap[key] = []
-                        slidemap[key].append([cmap[key][operatingdirection], partner1, partner2])
+                        slidemap[key].append([cmap[key][operatingdirection], partnerdirection, 3])
     return slidemap
 
 
@@ -195,36 +190,64 @@ def find_push_moves(cmap, key, direction, player, nextpos, values):
     nextpos2 = dirmap[nextpos][direction]
     if nextpos2 == 'void' or cmap[nextpos2][0] == '': #stärke 1 vom gegner
         strength = 1
-        print(f"stärke 1 vom gegner {nextpos}")
     elif cmap[nextpos2][0] == player: #eigene blockade: kein zug möglich
         strength = 0
     else:
         nextpos3 = dirmap[nextpos2][direction]
         if nextpos3 == 'void' or cmap[nextpos3][0] == '':
             strength = 2
-            print(f"stärke 2 vom gegner {nextpos2}")
         else:
             strength = 0
     if strength in {1, 2}: #jetzt stärke von aktivem player herausfinden
         oppositedirection = opposite_index(direction)
         behindpos = values[oppositedirection]
-        print(f"behindpos {behindpos}")
-        print(f"behindpos {cmap[behindpos]}")
         if cmap[behindpos][0] == player:
             if strength == 1:
                 movelist.append([values[direction], 2])
-            print(f"der dritte stein der benötigt wird zum pushen {cmap[cmap[behindpos][oppositedirection]][0]}")
             if cmap[cmap[behindpos][oppositedirection]][0] == player: #wenn der dritte vorher aus schwarz ist dann muss zwangsläufig auch gültig sein
                 movelist.append([values[direction], 3])
     return movelist
 
+def moveselection_manual(cmap, player):
+    singlemap, queuemap, pushmap, slidemap = check_possible_moves(cmap, player)
+    move_selection = {
+            's': singlemap,
+            'q': queuemap,
+            'p': pushmap,
+            'l': slidemap
+        }
+    movetype = input("Please select a move (s: single, q: queue, p: push, l: slide): ")
+    movesquare = input("Please select a square (a1 - i5): ")
+    movedirection = input("Please select a direction square (a1 - i5): ")
+    movenumber = input("Please select the number of stones, this must match the move type (1, 2, 3): ")
+    if movetype in move_selection and movesquare in move_selection[movetype] and any(movedirection in sublist for sublist in move_selection[movetype][movesquare]) and int(movenumber) in {1, 2, 3}:
+        umap = apply_move(cmap, movetype, movesquare, movedirection, movenumber, player)
+        print(print_board(umap))
+        return umap
+    else:
+        print("Invalid input. Please try again.")
+        return moveselection_manual(cmap, player)
+
+def apply_move(cmap, movetype, movesquare, movedirection, movenumber, player):
+    if movetype == 's':
+        cmap[movesquare][0] = ''
+        cmap[movedirection][0] = player
+        return cmap
+    elif movetype == 'q':
+        return None
+    elif movetype == 'p':
+        return None
+    elif movetype == 'l':
+        return None
 
 
 def main():
     workmap = fill_starting_position(dirmap)
-    print(check_possible_moves(workmap, 0))
-    print(print_board(workmap))
-
+    print_board(workmap)
+    activeplayer = 0
+    while True:
+        workmap = moveselection_manual(workmap, activeplayer)
+        activeplayer = 1 - activeplayer
 
 
 
