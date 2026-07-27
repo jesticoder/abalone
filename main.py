@@ -78,7 +78,10 @@ SYMBOLS = {
 }
 
 def opposite_index(i):
-    return (i - 1 + 3) % 6 + 1
+    newindex = (i + 3)
+    if newindex > 6:
+        newindex -= 6
+    return newindex
 
 def fill_starting_position(emap):
     for key in emap:
@@ -105,27 +108,34 @@ def print_board(emap):
 
 
 def check_possible_moves(cmap, player):
-    movemap = {}
+    singlemap = {}
+    queuemap = {}
+    pushmap = {}
     for key in cmap:
         values = cmap[key]
         if values[0] == player:
-            movemap[key] = []
-            for direction in range(1, len(values)):
+            for direction in range(1, len(values)): #checkt alle richtungen für mögliche moves
                if values[direction] != 'void':
                     nextpos = values[direction]
-                    if cmap[nextpos][0] == '':
-                        #Wenn zugrichtung leer ist wird zug als möglich angehangen
-                        movelist = find_queue_moves(cmap, key, direction, player)
-                        #movelist.extend(find_slide_moves(cmap, key, direction))
-                        movemap[key].extend(movelist)
-                        movemap[key].append([dirmap[key][direction], 1])
+                    if cmap[nextpos][0] == '': #freies feld: single oder push move möglich
+                        if not key in singlemap:
+                            singlemap[key] = []
+                        singlemap[key].append(dirmap[key][direction])
+                        queuelist = (find_queue_moves(cmap, key, direction, player))
+                        if len(queuelist) > 0:
+                            if not key in queuemap:
+                                queuemap[key] = []
+                            queuemap[key].extend(queuelist)
                     elif cmap[nextpos][0] == player:
                         #Wenn eigner im weg dann kein zug möglich
                         pass
                     elif cmap[nextpos][0] == abs(player-1):
                         #Wenn Gegner da ist muss zuerst kraft welche wirkt und mögliche eigene blockade bestimmt werden um legalität zu testen
-                        movemap[key].extend(find_push_moves(cmap, key, direction, player, nextpos, values))
-    return movemap
+                        pushlist = find_push_moves(cmap, key, direction, player, nextpos, values)
+                        if len(pushlist) > 0:
+                            pushmap[key] = pushlist
+    slidemap = find_slide_moves(cmap, player, singlemap)
+    return singlemap, queuemap, pushmap, slidemap
 
 def finddirectionindex(key, value):
     return dirmap[key].index(value) 
@@ -136,16 +146,47 @@ def find_queue_moves(cmap, key, direction, player):
 
     oppositedirection = opposite_index(direction)
    
-    behindpos = dirmap[key][oppositedirection]
+    behindpos = cmap[key][oppositedirection]
     if behindpos == 'void':
         return movelist
     if cmap[behindpos][0] == player:
-        movelist.append([dirmap[key][direction], 2])
+        movelist.append([cmap[key][direction], 2])
     if cmap[behindpos][oppositedirection] == 'void':
         return movelist
     if cmap[cmap[behindpos][oppositedirection]][0] == player:
-        movelist.append([dirmap[key][direction], 3])
+        movelist.append([cmap[key][direction], 3])
     return movelist
+
+def find_slide_moves(cmap, player, singlemap):
+    slidemap = {}
+    directions = [1, 2] #muss nur 2 von 4 richtungen für slides checken da die anderen 2 schon vom vorherigen geprüft sind
+    for key in singlemap:
+        values = singlemap[key]
+        for activemove in values:
+            operatingdirection = finddirectionindex(key, activemove)
+            for direction in directions:
+                partnerdirection = operatingdirection + direction
+                if partnerdirection > 6:
+                    partnerdirection -= 6
+                print(f"partnerdirection {partnerdirection}")
+                print(f"key {key}")
+                print(f"cmap[key][partnerdirection] {cmap[key][partnerdirection]}")
+                print(f"operatingdirection {operatingdirection}")
+                print(f"cmap[key]partnerdirection][0] {cmap[key][partnerdirection][0]}")
+                #now we can check if position in partnerdirection has a team stone
+                partner1 = cmap[key][partnerdirection]
+                if partner1 != 'void' and cmap[partner1][0] == player and cmap[cmap[partner1][operatingdirection]][0] == '': 
+                    #jetzt ist 2er slide möglich
+                    if not key in slidemap:
+                        slidemap[key] = []
+                    slidemap[key].append([cmap[key][operatingdirection], partner1])
+                    partner2 = cmap[partner1][partnerdirection]
+                    if partner2 != 'void' and cmap[partner2][0] == player and cmap[cmap[partner2][operatingdirection]][0] == '': 
+                        #jetzt ist 3er slide möglich
+                        if not key in slidemap:
+                            slidemap[key] = []
+                        slidemap[key].append([cmap[key][operatingdirection], partner1, partner2])
+    return slidemap
 
 
 
