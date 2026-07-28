@@ -77,6 +77,9 @@ SYMBOLS = {
     0: "●",    # player 1
 }
 
+STONECOUNT = {}
+
+
 def opposite_index(i):
     newindex = (i + 3)
     if newindex > 6:
@@ -170,13 +173,13 @@ def find_slide_moves(cmap, player, singlemap):
                     partnerdirection -= 6
                 #now we can check if position in partnerdirection has a team stone
                 partner1 = cmap[key][partnerdirection]
-                if partner1 != 'void' and cmap[partner1][0] == player and cmap[cmap[partner1][operatingdirection]][0] == '': 
+                if partner1 != 'void' and cmap[partner1][operatingdirection] != 'void' and cmap[partner1][0] == player and cmap[cmap[partner1][operatingdirection]][0] == '': 
                     #jetzt ist 2er slide möglich
                     if not key in slidemap:
                         slidemap[key] = []
                     slidemap[key].append([cmap[key][operatingdirection], partnerdirection, 2])
                     partner2 = cmap[partner1][partnerdirection]
-                    if partner2 != 'void' and cmap[partner2][0] == player and cmap[cmap[partner2][operatingdirection]][0] == '': 
+                    if partner2 != 'void' and cmap[partner2][operatingdirection] != 'void' and cmap[partner2][0] == player and cmap[cmap[partner2][operatingdirection]][0] == '': 
                         #jetzt ist 3er slide möglich
                         if not key in slidemap:
                             slidemap[key] = []
@@ -201,10 +204,10 @@ def find_push_moves(cmap, key, direction, player, nextpos, values):
     if strength in {1, 2}: #jetzt stärke von aktivem player herausfinden
         oppositedirection = opposite_index(direction)
         behindpos = values[oppositedirection]
-        if cmap[behindpos][0] == player:
+        if cmap[behindpos] != 'void' and cmap[behindpos][0] == player:
             if strength == 1:
                 movelist.append([values[direction], 2])
-            if cmap[cmap[behindpos][oppositedirection]][0] == player: #wenn der dritte vorher aus schwarz ist dann muss zwangsläufig auch gültig sein
+            if cmap[behindpos][oppositedirection] != 'void' and cmap[cmap[behindpos][oppositedirection]][0] == player: #wenn der dritte vorher aus schwarz ist dann muss zwangsläufig auch gültig sein
                 movelist.append([values[direction], 3])
     return movelist
 
@@ -230,18 +233,55 @@ def moveselection_manual(cmap, player):
 
 def apply_move(cmap, movetype, movesquare, movedirection, movenumber, player):
     if movetype == 's':
-        cmap[movesquare][0] = ''
-        cmap[movedirection][0] = player
-        return cmap
+        return apply_single_move(cmap, movesquare, movedirection, movenumber, player)
     elif movetype == 'q':
-        return None
+        print(movenumber)
+        return apply_queue_move(cmap, movesquare, movedirection, movenumber, player)
     elif movetype == 'p':
-        return None
+        return apply_push_move(cmap, movesquare, movedirection, movenumber, player)
     elif movetype == 'l':
-        return None
+        return apply_slide_move(cmap, movesquare, movedirection, movenumber, player)
+
+def apply_single_move(cmap, movesquare, movedirection, movenumber, player):
+    cmap[movesquare][0] = ''
+    cmap[movedirection][0] = player
+    return cmap
+def apply_queue_move(cmap, movesquare, movedirection, movenumber, player):
+    cmap[movedirection][0] = player
+    if movenumber == '2':
+        oppositedirection = opposite_index(dirmap[movesquare].index(movedirection))
+        cmap[cmap[movesquare][oppositedirection]][0] = ''
+    elif movenumber == '3':
+        oppositedirection = opposite_index(dirmap[movesquare].index(movedirection))
+        cmap[cmap[cmap[movesquare][oppositedirection]][oppositedirection]][0] = ''
+        print(cmap[cmap[cmap[movesquare][oppositedirection]][oppositedirection]])
+        print(cmap[cmap[cmap[movesquare][oppositedirection]][oppositedirection]][0])
+        print(22222)
+    return cmap
+def apply_push_move(cmap, movesquare, movedirection, movenumber, player):
+    direction = dirmap[movesquare].index(movedirection)
+    if cmap[movedirection][direction] != 'void' and cmap[cmap[movedirection][direction]][0] == 1-player:
+        cmap = apply_queue_move(cmap, movesquare, movedirection, movenumber, player)
+        if cmap[cmap[movedirection][direction]][direction] == 'void':
+            STONECOUNT[1-player] -= 1
+            return cmap
+        cmap[cmap[cmap[movedirection][direction]][direction]][0] = 1-player
+    else:
+        cmap = apply_queue_move(cmap, movesquare, movedirection, movenumber, player)
+        if cmap[movedirection][direction] == 'void':
+            STONECOUNT[1-player] -= 1
+            return cmap
+        cmap[cmap[movedirection][direction]][0] = 1-player
+    return cmap
+def apply_slide_move(cmap, movesquare, movedirection, movenumber, player):
+    return None
+
+
 
 
 def main():
+    global STONECOUNT
+    STONECOUNT= {0: 14, 1: 14}
     workmap = fill_starting_position(dirmap)
     print_board(workmap)
     activeplayer = 0
